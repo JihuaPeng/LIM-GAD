@@ -19,7 +19,7 @@ from models_lisa.build_criterion_actloss import build_model
 from util.utils import *
 import util.misc as utils
 import util.logger as loggers
-from dataloader.dataloader_videolisa_actors_12group_boxes_prompt import read_dataset
+from dataloader.dataloader_videolisa_12group_boxes_prompt import read_dataset
 import evaluation.cafe_eval as evaluation
 
 import transformers
