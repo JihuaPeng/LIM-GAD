@@ -375,7 +375,6 @@ def main():
 
     base_token = "[GROUP"
 
-    # 使用 for 循环生成 custom_tokens
     custom_tokens = []
     for i in range(args.num_group_tokens):
         custom_tokens.append(f"{base_token}{i}]")
@@ -501,14 +500,6 @@ def main():
     ]
 
 
-    # def print_all_named_modules(model):
-    #     print("All named modules in the model:")
-    #     for name, module in model.named_modules():
-    #         print(f"{name}: {type(module).__name__}")
-
-    # # 调用方式
-    # print_all_named_modules(model)
-
 
     # lora finetune
     lora_r = args.lora_r
@@ -555,9 +546,6 @@ def main():
         model.print_trainable_parameters()
 
 
-    # debug
-    # pdb.set_trace()
-
 
     model.resize_token_embeddings(len(tokenizer))
 
@@ -573,45 +561,6 @@ def main():
             p.requires_grad = True
 
 
-    # collate_fn_temp=partial(
-    #         collate_fn,
-    #         tokenizer=tokenizer,
-    #         conv_type=args.conv_type,
-    #         use_mm_start_end=args.use_mm_start_end,
-    #         local_rank=args.local_rank,
-    #     )
-
-
-    # debug
-    # pdb.set_trace()
-
-   
-    # for variable length input
-    # if args.distributed:
-    #     sampler_train = data.DistributedSampler(train_set, shuffle=True)
-    #     sampler_test = data.DistributedSampler(test_set, shuffle=False)
-    # else:
-    #     sampler_train = data.RandomSampler(train_set)
-    #     sampler_test = data.RandomSampler(test_set)
-
-    # batch_sampler_train = data.BatchSampler(sampler_train, args.batch, drop_last=True)
-
-    # train_loader = data.DataLoader(train_set, batch_sampler=batch_sampler_train,
-    #                                collate_fn=partial(collate_fn, 
-    #                               tokenizer=tokenizer, 
-    #                               conv_type=args.conv_type, 
-    #                               use_mm_start_end=args.use_mm_start_end, 
-    #                               local_rank=args.local_rank,
-    #     ), num_workers=args.num_workers, pin_memory=True)
-    # test_loader = data.DataLoader(test_set, args.test_batch, sampler=sampler_test, drop_last=False,
-    #                               collate_fn=partial(collate_fn, 
-    #                               tokenizer=tokenizer, 
-    #                               conv_type=args.conv_type, 
-    #                               use_mm_start_end=args.use_mm_start_end, 
-    #                               local_rank=args.local_rank,
-    #     ), num_workers=args.num_workers, pin_memory=True)
-
-
     model_cafe, criterion = build_model(args)
     # model_cafe = torch.nn.DataParallel(model_cafe).cuda()
     
@@ -620,24 +569,11 @@ def main():
     args.steps_per_epoch = len(train_set) // (args.batch * args.grad_accumulation_steps)
     args.warmup_epochs = 2
 
-    # def calculate_lr_based_on_epoch(step, args):
-    #     steps_per_epoch = args.steps_per_epoch
-    #     current_epoch = step // steps_per_epoch  # 计算当前 epoch
-    
-    #     # 示例：前 5 epoch 线性预热，之后余弦衰减
-    #     if current_epoch < args.warmup_epochs:
-    #         lr = args.lr * (current_epoch / args.warmup_epochs)  # 线性预热
-    #     else:
-    #         progress = (current_epoch - args.warmup_epochs) / (args.epochs - args.warmup_epochs)
-    #         lr = args.lr * (1 + math.cos(math.pi * progress)) / 2  # 余弦衰减
-    
-    #     return lr
-
 
     def calculate_cyclic_lr_per_epoch(step, lr, max_lr, steps_per_epoch, warmup_epochs, total_epochs, mode):
     
-        current_epoch = step // steps_per_epoch  # 将 step 转换为 epoch
-        total_cycles = total_epochs              # 总 epoch 数作为一个完整周期
+        current_epoch = step // steps_per_epoch  
+        total_cycles = total_epochs              
 
         cycle_progress = current_epoch % total_cycles
         if cycle_progress < warmup_epochs:
@@ -655,26 +591,6 @@ def main():
     ds_config = {
         "train_micro_batch_size_per_gpu": args.batch,
         "gradient_accumulation_steps": args.grad_accumulation_steps,
-        # "optimizer": {
-        #     "type": "Adam",
-        #     "params": {
-        #         "lr": args.lr,
-        #         "weight_decay": args.weight_decay,
-        #         "betas": (args.beta1, args.beta2),
-        #         "eps": 1e-8,    
-        #     }
-        # },
-        # "scheduler": {
-        # "type": "OneCycleLR",  # DeepSpeed 支持的调度器类型
-        # "params": {
-        #     "cycle_min_lr": args.lr,           # 初始学习率（与 optimizer.lr 一致）
-        #     "cycle_max_lr": args.max_lr,        # 最大学习率
-        #     "step_size_up": args.lr_step, # 上升步数
-        #     "step_size_down": args.lr_step_down,  # 下降步数
-        #     "mode": "triangular2",        # 模式
-        #     "cycle_momentum": False,      # 禁用 momentum 循环
-        #     }
-        # },
         "fp16": {
         "enabled": args.precision == "fp16",
         # "initial_scale_power": 10,
@@ -712,99 +628,10 @@ def main():
     }
 
 
-    # model_engine, optimizer, _, _ = deepspeed.initialize(
-    #     model=model,
-    #     model_parameters=model.parameters(),
-    #     # training_data=train_loader,
-    #     # collate_fn=partial(
-    #     #     collate_fn,
-    #     #     tokenizer=tokenizer,
-    #     #     conv_type=args.conv_type,
-    #     #     use_mm_start_end=args.use_mm_start_end,
-    #     #     local_rank=args.local_rank,
-    #     # ),
-    #     lr_scheduler=None,
-    #     config=ds_config,
-    # )
-
-
-    # resume deepspeed checkpoint
-    # if args.auto_resume and len(args.resume) == 0:
-    #     resume = os.path.join(args.log_dir, "ckpt_model")
-    #     if os.path.exists(resume):
-    #         args.resume = resume
-
-
-    # if args.resume:
-    #     load_path, client_state = model_engine.load_checkpoint(args.resume)
-    #     with open(os.path.join(args.resume, "latest"), "r") as f:
-    #         ckpt_dir = f.readlines()[0].strip()
-    #     args.start_epoch = (
-    #         int(ckpt_dir.replace("global_step", "")) // args.steps_per_epoch
-    #     )
-    #     print(
-    #         "resume training from {}, start from epoch {}".format(
-    #             args.resume, args.start_epoch
-    #         )
-    #     )
-
-
-
     # get the number of model parameters
     parameters = 'Number of full model parameters: {}'.format(sum([p.data.nelement() for p in model.parameters()]))
     print_log(save_path, '--------------------Number of parameters--------------------')
     print_log(save_path, parameters)
-
-
-    # after get_peft_model(model, lora_config)
-    # total_params = sum(p.numel() for p in model.parameters())
-    # trainable_params = sum(
-    #     p.numel() for n, p in model.named_parameters()
-    #     if p.requires_grad and ("cafe_model" in n or "lora" in n.lower())
-    # )
-
-    # trainable_percent = 100 * trainable_params / total_params
-    # print_log(save_path, "--------------------Trainable Parameters Summary--------------------")
-    # print_log(save_path, f"Total Parameters: {total_params / 1e6:.2f}M")
-    # print_log(save_path, f"Trainable Parameters (LoRA + cafe_model): {trainable_params / 1e6:.2f}M "
-    #                  f"({trainable_percent:.4f}%)")
-
-    # total_params = sum(p.numel() for p in model.parameters())
-
-    # lora_params = 0
-    # cafe_params = 0
-    # lora_layers = []
-    # cafe_layers = []
-
-    # for n, p in model.named_parameters():
-    #     if p.requires_grad:
-    #         if "lora_" in n.lower():
-    #             lora_params += p.numel()
-    #             lora_layers.append((n, tuple(p.shape)))
-    #         elif "cafe_model" in n:
-    #             cafe_params += p.numel()
-    #             cafe_layers.append((n, tuple(p.shape)))
-
-    # # Combine
-    # total_trainable = lora_params + cafe_params
-    # trainable_percent = 100 * total_trainable / total_params
-
-    # # === Print summary ===
-    # print_log(save_path, "--------------------Trainable Parameters Breakdown--------------------")
-    # print_log(save_path, f"Total parameters: {total_params/1e6:.2f}M")
-    # print_log(save_path, f"LoRA trainable parameters: {lora_params/1e6:.2f}M")
-    # print_log(save_path, f"Cafe_model trainable parameters: {cafe_params/1e6:.2f}M")
-    # print_log(save_path, f"Total trainable (LoRA + Cafe_model): {total_trainable/1e6:.2f}M ({trainable_percent:.4f}%)")
-
-    # print_log(save_path, "--------------------LoRA Trainable Layers--------------------")
-    # for n, shape in lora_layers:
-    #     print_log(save_path, f"{n:<80} {shape}")
-
-    # print_log(save_path, "--------------------Cafe_model Trainable Layers--------------------")
-    # for n, shape in cafe_layers:
-    #     print_log(save_path, f"{n:<80} {shape}")
-
-
 
     # define loss function and optimizer
     optimizer = torch.optim.Adam(model.parameters(), args.lr, betas=(0.9, 0.999), eps=1e-8,
@@ -819,15 +646,6 @@ def main():
         model=model,
         optimizer=optimizer,
         model_parameters=model.parameters(),
-        # training_data=train_loader,
-        # collate_fn=partial(
-        #     collate_fn,
-        #     tokenizer=tokenizer,
-        #     conv_type=args.conv_type,
-        #     use_mm_start_end=args.use_mm_start_end,
-        #     local_rank=args.local_rank,
-        # ),
-        # lr_scheduler=None,
         config=ds_config,
     )
 
@@ -945,7 +763,6 @@ def train(train_loader, model, criterion, optimizer, epoch):
 
     criterion = criterion.to(device)
 
-    # 初始化梯度累积计数
     accumulation_steps = args.grad_accumulation_steps
     accumulation_counter = 0
 
@@ -957,12 +774,7 @@ def train(train_loader, model, criterion, optimizer, epoch):
 
     for i, (llava_input, targets, infos) in enumerate(metric_logger.log_every(train_loader, print_freq, header)):
         
-        # debug
-        # pdb.set_trace()
-
-
-        # llava_input = dict_to_cuda(llava_input)
-
+       
         llava_input = move_to_device(llava_input, device)
 
         if args.precision == "fp16":
@@ -1020,12 +832,6 @@ def train(train_loader, model, criterion, optimizer, epoch):
         # deepspeed 
         model.backward(loss)
         # accumulation_counter += 1
-
-        # 只在累积足够步数时更新模型
-        # if accumulation_counter % accumulation_steps == 0:
-        #     model.step()  # 更新模型 + 清空梯度
-        #     model.zero_grad()  # 保险起见，但 DeepSpeed 可能不需要
-        #     accumulation_counter = 0  # 重置计数器
 
         if args.gradient_clipping:
             nn.utils.clip_grad_norm_(model.parameters(), args.max_norm)
@@ -1145,9 +951,6 @@ def validate(test_loader, model, criterion, metrics, epoch):
         }
 
 
-        # debug
-        # pdb.set_trace()
-
         # compute output
         outputs = model(**input_dict)
 
@@ -1228,12 +1031,6 @@ def make_txt(boxes, infos, outputs, name_to_vid, file_path):
                     f = open(file_path, "a+")
                     f.write(str_to_be_added + "\r\n")
                     f.close()
-
-
-# def collate_fn(batch):
-#     batch = list(zip(*batch))
-#     batch[0] = torch.stack([image for image in batch[0]])
-#     return tuple(batch)
 
 
 if __name__ == '__main__':
