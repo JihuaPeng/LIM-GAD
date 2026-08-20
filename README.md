@@ -11,4 +11,4 @@ Make sure you have the following dependencies installed:
 * Matplotlib=3.1.0
 
 ## Datasets
-Our model is evaluated on [CAFE](https://dk-kim.github.io/CAFE/)
+Our model is evaluated on [CAFE](https://dk-kim.github.io/CAFE/).
