@@ -2,7 +2,10 @@
 Language-Instructed Multimodal Learning for Interpretable Group Activity Detection
 
 
-# Dependencies
-PyTorch >= 0.4.0
-NumPy
-Matplotlib=3.1.0
+## Dependencies
+Make sure you have the following dependencies installed:
+* Ubuntu 20.04
+* CUDA 11.2
+* Python 3.8
+* PyTorch 1.8.1
+* Matplotlib=3.1.0
