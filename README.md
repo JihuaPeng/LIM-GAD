@@ -1,4 +1,4 @@
-# LIM-GAD
+# LGM-GAD
 Language-Instructed Multimodal Learning for Interpretable Group Activity Detection
 
 
