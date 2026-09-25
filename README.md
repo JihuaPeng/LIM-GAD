@@ -1,6 +1,5 @@
 # LGM-GAD
-Language-Instructed Multimodal Learning for Interpretable Group Activity Detection
-
+Language-Guided Multimodal Learning for Interpretable Group Activity Detection
 
 ## Dependencies
 Make sure you have the following dependencies installed:
